@@ -1,6 +1,5 @@
 /* eslint-disable import/order */
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
 const { ExpressPeerServer } = require('peer');
 const log = require('loglevel');
 const dotenv = require('dotenv');
@@ -18,20 +17,7 @@ const io = require('socket.io')(server, socketOptions);
 const peerServerOptions = { debug: true };
 const peerServer = ExpressPeerServer(server, peerServerOptions);
 
-app.set('view engine', 'ejs');
 app.use('/peerjs', peerServer);
-app.use(express.static('public'));
-
-app.get('/', (req, res) => {
-  const room = uuidv4();
-  log.debug(`[/] Root url accessed, redirecting to '/${room}'`);
-  res.redirect(`/${room}`);
-});
-app.get('/:room', (req, res) => {
-  const { room } = req.params;
-  log.debug(`[/:room] Room ${room} accessed`);
-  res.render('room', { room });
-});
 
 io.on('connection', (socket) => {
   const { id } = socket;
@@ -56,7 +42,7 @@ io.on('connection', (socket) => {
 });
 
 io.on('connect_error', (err) => {
-  console.log(`connect_error due to ${err.message}`);
+  log.error(`connect_error due to ${err.message}`);
 });
 
 const port = 3005;
