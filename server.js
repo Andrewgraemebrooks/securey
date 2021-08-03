@@ -19,6 +19,10 @@ const peerServer = ExpressPeerServer(server, peerServerOptions);
 
 app.use('/peerjs', peerServer);
 
+app.get('/', (req, res) => {
+  res.send('Hello');
+});
+
 io.on('connection', (socket) => {
   const { id } = socket;
   log.debug(`[connection] A user has connected on socket id: ${id}`);
