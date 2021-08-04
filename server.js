@@ -7,6 +7,10 @@ const socketOptions = require('./socketOptions');
 
 dotenv.config();
 const { APP_ENV: appEnv } = process.env;
+if (!appEnv) {
+  log.error('Error, missing app environment, exiting program');
+  process.exit(1);
+}
 const loggingLevel = appEnv === 'development' ? 'debug' : 'error';
 log.setLevel(loggingLevel);
 
