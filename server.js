@@ -20,7 +20,7 @@ const peerServer = ExpressPeerServer(server, peerServerOptions);
 app.use('/peerjs', peerServer);
 
 app.get('/', (req, res) => {
-  res.send('Hello');
+  res.send('Securey server running well');
 });
 
 io.on('connection', (socket) => {
