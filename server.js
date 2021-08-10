@@ -24,14 +24,42 @@ const peerServer = ExpressPeerServer(server, peerServerOptions);
 app.use('/peerjs', peerServer);
 
 app.get('/', (req, res) => {
-  res.send('Securey server running well');
+  res.send('OK');
 });
+
+const rooms = [];
 
 io.on('connection', (socket) => {
   const { id } = socket;
   log.debug(`[connection] A user has connected on socket id: ${id}`);
   socket.on('join-room', (room, userId) => {
     log.debug(`[join-room] New user: ${userId} is joining room: ${room}`);
+    const findRoom = (existingRoom) => existingRoom.roomId === room;
+    const roomExists = rooms.some(findRoom);
+    const existingRoom = rooms.filter(findRoom)[0];
+    if (roomExists) {
+      if (existingRoom.users.length >= 2) {
+        log.debug('The max number of users in a room has been reached');
+        return;
+      }
+      existingRoom.users.push(userId);
+      socket.join(room);
+      log.debug(
+        `[join-room] Emitting new user ${userId} to all other users in room ${room}`
+      );
+      socket.to(room).emit('user-connected', userId);
+      socket.on('disconnected', () => {
+        log.debug(
+          `[disconnected] User ${userId} has disconnected from room ${room}`
+        );
+        log.debug(
+          `[disconnected] Emitting disconnected user ${userId} to all other users in room ${room}`
+        );
+        socket.to(room).emit('user-disconnected', userId);
+      });
+      return;
+    }
+    rooms.push({ roomId: room, users: [userId] });
     socket.join(room);
     log.debug(
       `[join-room] Emitting new user ${userId} to all other users in room ${room}`
