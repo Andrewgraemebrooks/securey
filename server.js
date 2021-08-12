@@ -27,7 +27,7 @@ app.get('/', (req, res) => {
   res.send('OK');
 });
 
-const rooms = [];
+let rooms = [];
 
 io.on('connection', (socket) => {
   const { id } = socket;
@@ -35,9 +35,11 @@ io.on('connection', (socket) => {
   socket.on('join-room', (room, userId) => {
     log.debug(`[join-room] New user: ${userId} is joining room: ${room}`);
     const findRoom = (existingRoom) => existingRoom.roomId === room;
+    const findUser = (user) => user === userId;
+    const not = (fn) => (...args) => !fn(...args);
     const roomExists = rooms.some(findRoom);
-    const existingRoom = rooms.filter(findRoom)[0];
     if (roomExists) {
+      const existingRoom = rooms.filter(findRoom)[0];
       if (existingRoom.users.length >= 2) {
         log.debug('The max number of users in a room has been reached');
         return;
@@ -48,31 +50,39 @@ io.on('connection', (socket) => {
         `[join-room] Emitting new user ${userId} to all other users in room ${room}`
       );
       socket.to(room).emit('user-connected', userId);
-      socket.on('disconnected', () => {
+      socket.on('disconnect', () => {
         log.debug(
-          `[disconnected] User ${userId} has disconnected from room ${room}`
+          `[disconnect] User ${userId} has disconnected from room ${room}`
         );
         log.debug(
-          `[disconnected] Emitting disconnected user ${userId} to all other users in room ${room}`
+          `[disconnect] Emitting disconnected user ${userId} to all other users in room ${room}`
         );
         socket.to(room).emit('user-disconnected', userId);
+        const newUsers = existingRoom.users.filter(findUser);
+        existingRoom.users = newUsers;
       });
       return;
     }
     rooms.push({ roomId: room, users: [userId] });
     socket.join(room);
-    log.debug(
-      `[join-room] Emitting new user ${userId} to all other users in room ${room}`
-    );
+    log.debug('This room does not exist, creating new room');
+    log.debug(`[join-room] Emitting new user ${userId} to room ${room}`);
     socket.to(room).emit('user-connected', userId);
-    socket.on('disconnected', () => {
+    socket.on('disconnect', () => {
       log.debug(
-        `[disconnected] User ${userId} has disconnected from room ${room}`
+        `[disconnect] User ${userId} has disconnected from room ${room}`
       );
       log.debug(
-        `[disconnected] Emitting disconnected user ${userId} to all other users in room ${room}`
+        `[disconnect] Emitting disconnected user ${userId} to all other users in room ${room}`
       );
       socket.to(room).emit('user-disconnected', userId);
+      const existingRoom = rooms.filter(findRoom)[0];
+      const newUsers = existingRoom.users.filter(findUser);
+      if (newUsers.length === 0) {
+        const newRooms = rooms.filter(not(findRoom));
+        rooms = newRooms;
+      }
+      existingRoom.users = newUsers;
     });
   });
 });

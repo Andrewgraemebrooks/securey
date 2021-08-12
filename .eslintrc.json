@@ -16,7 +16,7 @@
         "ecmaVersion": 12
     },
     "rules": {
-        "prettier/prettier": "error",
+        "prettier/prettier": "off",
         "quotes": [2, "single"],
         "comma-dangle": "off"
     }
